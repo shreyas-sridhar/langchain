@@ -1,4 +1,4 @@
-<img width="1475" height="700" alt="image" src="https://github.com/user-attachments/assets/c88f9d24-5939-4d26-840a-45e889bdb7ce" />
+
 
 
 
@@ -31,3 +31,13 @@ added the add usuage funch and gemini mu,ti chunk regression test as well
 Added a Gemini-style multi-chunk regression test to verify that token usage details are correctly accumulated across streamed responses.
 
 **Test Result:** 1 passed, 0 failed.
+the exact issue here where the .update func is Cached-token (cache_read) and reasoning-token counts are overwritten by the final chunk instead of being summed. The top-level token totals remain correct.
+<img width="940" height="618" alt="image" src="https://github.com/user-attachments/assets/a11f32ba-aed2-4611-b2ec-c968646e3c57" />
+
+fixed the .update issue by replacing it with the add usuage func
+<img width="1487" height="505" alt="image" src="https://github.com/user-attachments/assets/572297c4-3eb2-46ee-9504-0b7397758cff" />
+
+
+<img width="1475" height="700" alt="image" src="https://github.com/user-attachments/assets/c88f9d24-5939-4d26-840a-45e889bdb7ce" />
+
+
