@@ -8,7 +8,7 @@ import json
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
-import pytest
+import pytest  # type: ignore[import-not-found]
 from langchain_protocol.protocol import (
     ContentBlockDeltaData,
     ContentBlockFinishData,
@@ -1510,7 +1510,57 @@ class _CachedUsageModel(BaseChatModel):
             )
         )
 
+class _GeminiLikeUsageModel(BaseChatModel):
+    """Simulates Gemini-style per-chunk usage deltas."""
 
+    @property
+    def _llm_type(self) -> str:
+        return "gemini-like"
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: CallbackManagerForLLMRun | None = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        del messages, stop, run_manager, kwargs
+        raise NotImplementedError
+
+    def _stream(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: CallbackManagerForLLMRun | None = None,
+        **kwargs: Any,
+    ) -> Iterator[ChatGenerationChunk]:
+        del messages, stop, run_manager, kwargs
+
+        yield ChatGenerationChunk(
+            message=AIMessageChunk(
+                content="Hello",
+                usage_metadata={
+                    "input_tokens": 100,
+                    "output_tokens": 40,
+                    "total_tokens": 140,
+                    "input_token_details": {"cache_read": 80},
+                    "output_token_details": {"reasoning": 30},
+                },
+            )
+        )
+
+        yield ChatGenerationChunk(
+            message=AIMessageChunk(
+                content=" world",
+                usage_metadata={
+                    "input_tokens": 0,
+                    "output_tokens": 20,
+                    "total_tokens": 20,
+                    "input_token_details": {"cache_read": 0},
+                    "output_token_details": {"reasoning": 0},
+                },
+            )
+        )
 _EXPECTED_CACHED_USAGE = {
     "input_tokens": 100,
     "output_tokens": 5,
@@ -1521,12 +1571,13 @@ _EXPECTED_CACHED_USAGE = {
 
 
 class TestUsageTokenDetails:
-    """Regression: v3 streaming must not drop usage token detail dicts.
 
-    Providers fold cache reads/writes into `input_tokens` and break them
-    out in `input_token_details`; dropping the details makes tracers
-    (e.g. LangSmith) price every input token at the uncached rate.
-    """
+    # """Regression: v3 streaming must not drop usage token detail dicts.
+
+    # Providers fold cache reads/writes into `input_tokens` and break them
+    # out in `input_token_details`; dropping the details makes tracers
+    # (e.g. LangSmith) price every input token at the uncached rate.
+    # """
 
     def test_stream_events_v3_output_preserves_token_details(self) -> None:
         model = _CachedUsageModel()
@@ -1536,6 +1587,7 @@ class TestUsageTokenDetails:
         assert stream.output.usage_metadata == _EXPECTED_CACHED_USAGE
 
     def test_stream_events_v3_on_llm_end_preserves_token_details(self) -> None:
+        # my gemini
         end_usages: list[Any] = []
 
         class RecordingHandler(BaseCallbackHandler):
@@ -1549,6 +1601,20 @@ class TestUsageTokenDetails:
         for _ in stream:
             pass
         assert end_usages == [_EXPECTED_CACHED_USAGE]
+    def test_stream_events_v3_accumulates_gemini_usage_details(self) -> None:
+        model = _GeminiLikeUsageModel()
+        stream = model.stream_events("hi", version="v3")
+
+        for _ in stream:
+            pass
+
+        assert stream.output.usage_metadata == {
+            "input_tokens": 100,
+            "output_tokens": 60,
+            "total_tokens": 160,
+            "input_token_details": {"cache_read": 80},
+            "output_token_details": {"reasoning": 30},
+        }
 
     @pytest.mark.asyncio
     async def test_astream_events_v3_on_llm_end_preserves_token_details(self) -> None:
