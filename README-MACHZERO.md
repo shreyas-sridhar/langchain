@@ -37,7 +37,7 @@ the exact issue here where the .update func is Cached-token (cache_read) and rea
 fixed the .update issue by replacing it with the add usuage func
 <img width="1487" height="505" alt="image" src="https://github.com/user-attachments/assets/572297c4-3eb2-46ee-9504-0b7397758cff" />
 
-
+created a simulated Gemini-style model that sends token usage information across multiple response chunks to verify that LangChain correctly accumulates token counts and preserves detailed usage metadata instead of overwriting previous values
 <img width="1475" height="700" alt="image" src="https://github.com/user-attachments/assets/c88f9d24-5939-4d26-840a-45e889bdb7ce" />
 
 
